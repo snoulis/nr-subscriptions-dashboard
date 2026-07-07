@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NR Subscription Console</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --bg: #121C18;
+  --panel: #1B2822;
+  --panel-2: #223129;
+  --line: #33473C;
+  --contour: #2A3B32;
+  --text: #EAE7DC;
+  --text-dim: #93A399;
+  --amber: #D98E3F;
+  --moss: #6FA287;
+  --steel: #5B8FA8;
+  --red: #C4574A;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+  --font-body: 'Inter', sans-serif;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+
+body{
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  padding: 32px 24px 80px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before{
+  content:'';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image:
+    repeating-radial-gradient(circle at 15% 20%, transparent 0, transparent 38px, var(--contour) 39px, transparent 40px),
+    repeating-radial-gradient(circle at 85% 75%, transparent 0, transparent 52px, var(--contour) 53px, transparent 54px);
+}
+
+.wrap{ position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; }
+
+/* Header */
+header{
+  display:flex; justify-content: space-between; align-items: flex-end;
+  flex-wrap: wrap; gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 20px; margin-bottom: 28px;
+}
+.h-title{
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(24px, 3.2vw, 34px);
+  letter-spacing: 0.01em;
+}
+.h-title span{ color: var(--amber); }
+.h-sub{
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  letter-spacing: 0.04em;
+}
+.h-stamp{
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: right;
+  line-height: 1.6;
+}
+.h-stamp b{ color: var(--moss); }
+
+/* Alert banner */
+.alert-banner{
+  display:flex; align-items:center; gap:12px;
+  padding: 12px 18px; margin-bottom: 24px;
+  border: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 12.5px;
+}
+.alert-banner.warn{ border-color: #D98E3F55; background: #D98E3F14; color: #E8B97A; }
+.alert-banner.danger{ border-color: #C4574A55; background: #C4574A14; color: #E29089; }
+.alert-banner.clear{ border-color: var(--line); background: var(--panel); color: var(--text-dim); }
+.alert-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.alert-banner.warn .alert-dot{ background: var(--amber); }
+.alert-banner.danger .alert-dot{ background: var(--red); }
+.alert-banner.clear .alert-dot{ background: var(--moss); }
+.alert-banner b{ color: inherit; }
+
+/* Stat cards */
+.stats{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 32px;
+}
+@media (max-width: 800px){ .stats{ grid-template-columns: repeat(2, 1fr);} }
+
+.stat{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 16px 18px;
+  position: relative;
+}
+.stat::before, .stat::after{
+  content:''; position:absolute; width:8px; height:8px;
+  border-top: 1px solid var(--amber); border-left: 1px solid var(--amber);
+  top: -1px; left: -1px;
+}
+.stat::after{
+  top:auto; left:auto; bottom:-1px; right:-1px;
+  border-top:none; border-left:none;
+  border-bottom: 1px solid var(--amber); border-right: 1px solid var(--amber);
+}
+.stat-label{
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em;
+  color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;
+}
+.stat-value{
+  font-family: var(--font-display); font-weight: 700; font-size: 22px;
+}
+.stat-value.small{ font-size: 15px; font-weight: 600; }
+.stat-foot{ font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+/* Section titles */
+.section-title{
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-dim);
+  margin-bottom: 14px; display:flex; align-items:center; gap:10px;
+}
+.section-title::after{ content:''; flex:1; height:1px; background: var(--line); }
+
+/* Layout grid */
+.grid{
+  display:grid; grid-template-columns: 1.6fr 1fr; gap: 20px; margin-bottom: 32px;
+}
+@media (max-width: 900px){ .grid{ grid-template-columns: 1fr; } }
+
+.panel{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 20px;
+}
+
+/* Timeline bars */
+.tl-row{
+  display:grid; grid-template-columns: 130px 1fr 90px; align-items:center; gap:12px;
+  padding: 9px 0; border-bottom: 1px solid var(--panel-2);
+  transition: opacity 0.2s;
+}
+.tl-row:last-child{ border-bottom: none; }
+.tl-org{ font-family: var(--font-mono); font-size: 12.5px; }
+.tl-track{ background: var(--panel-2); height: 8px; position: relative; }
+.tl-fill{ height: 100%; border-radius: 1px; }
+.tl-days{ font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim); text-align:right; }
+.tl-row.dim{ opacity: 0.25; }
+
+/* Donut + legend */
+.donut-wrap{ display:flex; align-items:center; justify-content:center; margin-bottom: 18px; }
+.legend{ display:flex; flex-direction:column; gap: 10px; }
+.legend-item{
+  display:flex; align-items:center; gap:10px; font-family: var(--font-mono); font-size: 12px;
+  cursor:pointer; padding: 6px 8px; border: 1px solid transparent;
+}
+.legend-item:hover{ border-color: var(--line); }
+.legend-item.active{ border-color: var(--amber); background: var(--panel-2); }
+.swatch{ width:10px; height:10px; flex-shrink:0; }
+.legend-count{ margin-left:auto; color: var(--text-dim); }
+
+/* Search */
+.search-row{
+  display:flex; align-items:center; gap:10px;
+  background: var(--panel); border: 1px solid var(--line);
+  padding: 10px 14px; margin-bottom: 14px;
+}
+.search-icon{ color: var(--text-dim); flex-shrink:0; }
+.search-input{
+  flex:1; background: transparent; border: none; outline: none;
+  color: var(--text); font-family: var(--font-mono); font-size: 13px;
+  letter-spacing: 0.02em;
+}
+.search-input::placeholder{ color: var(--text-dim); }
+.search-count{
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* Table */
+.table-wrap{ background: var(--panel); border: 1px solid var(--line); overflow: hidden; }
+table{ width:100%; border-collapse: collapse; }
+thead th{
+  text-align:left; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-dim); font-weight:500;
+  padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel-2);
+}
+tbody td{
+  padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--panel-2);
+}
+tbody tr:last-child td{ border-bottom: none; }
+tbody tr{ transition: background 0.15s; }
+tbody tr:hover{ background: var(--panel-2); }
+.badge{
+  font-family: var(--font-mono); font-size: 10.5px; padding: 3px 8px;
+  border: 1px solid; letter-spacing: 0.03em; white-space:nowrap;
+}
+.status-dot{ display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:7px; }
+.org-link{ color: var(--text); text-decoration:none; font-family: var(--font-mono); font-size: 12px; }
+.org-link:hover{ color: var(--amber); text-decoration: underline; }
+.sub-id{ color: var(--text-dim); font-family: var(--font-mono); font-size: 11.5px; }
+
+footer{
+  margin-top: 40px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-dim);
+  text-align:center; letter-spacing: 0.05em;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="h-title">NR <span>SUBSCRIPTION</span> CONSOLE</div>
+      <div class="h-sub">ArcGIS ONLINE — NATURAL RESOURCES ORG PORTFOLIO</div>
+    </div>
+    <div class="h-stamp" id="stamp"></div>
+  </header>
+
+  <div id="alert-banner"></div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="section-title">Expiration timeline</div>
+  <div class="grid">
+    <div class="panel">
+      <div id="timeline"></div>
+    </div>
+    <div class="panel">
+      <div class="section-title" style="margin-bottom:16px;">By type</div>
+      <div class="donut-wrap" id="donut"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+  <div class="section-title">Full subscription list</div>
+  <div class="search-row">
+    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input type="text" id="search-box" class="search-input" placeholder="Search org name…" autocomplete="off" />
+    <span id="search-count" class="search-count"></span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Org</th>
+          <th>Type</th>
+          <th>Expires</th>
+          <th>Days left</th>
+          <th>Sub ID</th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+
+  <footer>11 SUBSCRIPTIONS · SOURCE: NR_SUBSCRIPTIONS.CSV</footer>
+</div>
+
+<script>
+const DATA = [
+  {org:"Nat Res", type:"Industry", url:"https://nat-res.maps.arcgis.com", exp:"2027-01-25", sub_id:"1685109804"},
+  {org:"Ag", type:"Industry", url:"https://esriag.maps.arcgis.com", exp:"2027-01-12", sub_id:"8944849279"},
+  {org:"Forestry", type:"Industry", url:"https://integratedforest.maps.arcgis.com", exp:"2027-01-18", sub_id:"4270642509"},
+  {org:"Mining", type:"Industry", url:"https://mining.maps.arcgis.com", exp:"2027-07-17", sub_id:"8599576119"},
+  {org:"Petroleum", type:"Industry", url:"https://esripetroleum.maps.arcgis.com", exp:"2027-06-19", sub_id:"3723858177"},
+  {org:"Pipeline", type:"Industry", url:"https://esripipeline.maps.arcgis.com", exp:"2027-03-18", sub_id:"1306696284"},
+  {org:"Renewables", type:"Industry", url:"https://esrirenewables.maps.arcgis.com", exp:"2027-03-01", sub_id:"2020347589"},
+  {org:"SMB", type:"Industry", url:"https://esrismb.maps.arcgis.com", exp:"2027-02-27", sub_id:"3062017070"},
+  {org:"Pre-release", type:"Dev", url:"https://nat-res.mapsdevext.arcgis.com", exp:"2027-04-23", sub_id:"9142613148"},
+  {org:"PUG", type:"Community", url:"https://pugonline.maps.arcgis.com", exp:"2027-07-06", sub_id:"2819666619"},
+  {org:"NR Community", type:"Community", url:"https://esrinrcommunity.maps.arcgis.com", exp:"2027-06-28", sub_id:"3677161565"}
+];
+
+const TYPE_COLOR = {
+  Industry: '#6FA287',
+  Dev: '#D98E3F',
+  Community: '#5B8FA8'
+};
+
+const today = new Date();
+today.setHours(0,0,0,0);
+
+function daysUntil(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  return Math.round((d - today) / 86400000);
+}
+
+DATA.forEach(d => { d.daysLeft = daysUntil(d.exp); });
+
+const maxDays = Math.max(...DATA.map(d => d.daysLeft));
+
+function urgencyColor(days){
+  if(days < 0) return '#C4574A';
+  if(days <= 30) return '#D98E3F';
+  return '#6FA287';
+}
+
+function fmtDate(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+
+// ---- Alert banner: expirations within 30 days ----
+function renderAlertBanner(){
+  const dueSoon = DATA.filter(d => d.daysLeft <= 30).sort((a,b) => a.daysLeft - b.daysLeft);
+  const overdue = dueSoon.filter(d => d.daysLeft < 0);
+  const el = document.getElementById('alert-banner');
+
+  if(dueSoon.length === 0){
+    el.innerHTML = `
+      <div class="alert-banner clear">
+        <span class="alert-dot"></span>
+        <span>No subscriptions expiring within 30 days.</span>
+      </div>`;
+    return;
+  }
+
+  const names = dueSoon.map(d => `${d.org} (${d.daysLeft < 0 ? 'expired ' + Math.abs(d.daysLeft) + 'd ago' : d.daysLeft + 'd left'})`).join(', ');
+  const cls = overdue.length ? 'danger' : 'warn';
+  const label = overdue.length
+    ? `${dueSoon.length} subscription${dueSoon.length > 1 ? 's' : ''} due for renewal — ${overdue.length} already expired`
+    : `${dueSoon.length} subscription${dueSoon.length > 1 ? 's' : ''} expiring within 30 days`;
+
+  el.innerHTML = `
+    <div class="alert-banner ${cls}">
+      <span class="alert-dot"></span>
+      <span><b>${label}:</b> ${names}</span>
+    </div>`;
+}
+renderAlertBanner();
+
+// ---- Header stamp ----
+document.getElementById('stamp').innerHTML =
+  `SNAPSHOT <b>${today.toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'}).toUpperCase()}</b><br>ALL SUBSCRIPTIONS ACTIVE`;
+
+// ---- Stat cards ----
+const sorted = [...DATA].sort((a,b) => a.daysLeft - b.daysLeft);
+const soonest = sorted[0];
+const furthest = sorted[sorted.length - 1];
+const typeCounts = DATA.reduce((acc,d) => { acc[d.type] = (acc[d.type]||0)+1; return acc; }, {});
+const typeSummary = Object.entries(typeCounts).map(([t,c]) => `${t} ${c}`).join(' · ');
+
+const statsHTML = `
+  <div class="stat">
+    <div class="stat-label">Total subscriptions</div>
+    <div class="stat-value">${DATA.length}</div>
+    <div class="stat-foot">${typeSummary}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Next to expire</div>
+    <div class="stat-value small">${soonest.org}</div>
+    <div class="stat-foot">${fmtDate(soonest.exp)} · ${soonest.daysLeft}d</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Furthest out</div>
+    <div class="stat-value small">${furthest.org}</div>
+    <div class="stat-foot">${fmtDate(furthest.exp)} · ${furthest.daysLeft}d</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Distinct types</div>
+    <div class="stat-value">${Object.keys(typeCounts).length}</div>
+    <div class="stat-foot">Industry · Dev · Community</div>
+  </div>
+`;
+document.getElementById('stats').innerHTML = statsHTML;
+
+// ---- Timeline ----
+let activeFilter = null;
+
+function renderTimeline(){
+  const rows = [...DATA].sort((a,b) => a.daysLeft - b.daysLeft).map(d => {
+    const dim = activeFilter && d.type !== activeFilter;
+    const pct = Math.max(4, (d.daysLeft / maxDays) * 100);
+    return `
+      <div class="tl-row ${dim ? 'dim' : ''}">
+        <div class="tl-org">${d.org}</div>
+        <div class="tl-track"><div class="tl-fill" style="width:${pct}%; background:${urgencyColor(d.daysLeft)};"></div></div>
+        <div class="tl-days">${d.daysLeft}d</div>
+      </div>`;
+  }).join('');
+  document.getElementById('timeline').innerHTML = rows;
+}
+renderTimeline();
+
+// ---- Donut ----
+function renderDonut(){
+  const total = DATA.length;
+  const entries = Object.entries(typeCounts);
+  let cumulative = 0;
+  const R = 52, C = 2 * Math.PI * R;
+  const segments = entries.map(([type, count]) => {
+    const frac = count / total;
+    const dash = frac * C;
+    const gap = C - dash;
+    const offset = -cumulative * C;
+    cumulative += frac;
+    const dim = activeFilter && type !== activeFilter;
+    return `<circle cx="70" cy="70" r="${R}" fill="none" stroke="${TYPE_COLOR[type]}" stroke-width="16"
+      stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${offset}" opacity="${dim ? 0.2 : 1}"
+      transform="rotate(-90 70 70)" style="transition:opacity 0.2s"/>`;
+  }).join('');
+
+  document.getElementById('donut').innerHTML = `
+    <svg width="140" height="140" viewBox="0 0 140 140">
+      ${segments}
+      <text x="70" y="66" text-anchor="middle" font-family="IBM Plex Mono" font-size="20" fill="#EAE7DC" font-weight="600">${total}</text>
+      <text x="70" y="82" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#93A399" letter-spacing="1">TOTAL</text>
+    </svg>`;
+
+  document.getElementById('legend').innerHTML = entries.map(([type,count]) => `
+    <div class="legend-item ${activeFilter === type ? 'active' : ''}" data-type="${type}">
+      <span class="swatch" style="background:${TYPE_COLOR[type]}"></span>
+      <span>${type}</span>
+      <span class="legend-count">${count}</span>
+    </div>`).join('');
+
+  document.querySelectorAll('.legend-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const t = el.dataset.type;
+      activeFilter = activeFilter === t ? null : t;
+      renderDonut();
+      renderTimeline();
+      renderTable();
+    });
+  });
+}
+renderDonut();
+
+// ---- Table ----
+let searchTerm = '';
+
+function renderTable(){
+  const filtered = [...DATA].sort((a,b) => a.daysLeft - b.daysLeft)
+    .filter(d => !activeFilter || d.type === activeFilter)
+    .filter(d => d.org.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const rows = filtered.map(d => `
+      <tr>
+        <td><span class="status-dot" style="background:${urgencyColor(d.daysLeft)}"></span></td>
+        <td><a class="org-link" href="${d.url}" target="_blank" rel="noopener">${d.org} ↗</a></td>
+        <td><span class="badge" style="color:${TYPE_COLOR[d.type]}; border-color:${TYPE_COLOR[d.type]}44;">${d.type}</span></td>
+        <td>${fmtDate(d.exp)}</td>
+        <td>${d.daysLeft}d</td>
+        <td class="sub-id">${d.sub_id}</td>
+      </tr>`).join('');
+
+  document.getElementById('table-body').innerHTML = rows.length ? rows :
+    `<tr><td colspan="6" style="text-align:center; color:var(--text-dim); font-family:var(--font-mono); padding:24px;">No orgs match "${searchTerm}"</td></tr>`;
+
+  const countEl = document.getElementById('search-count');
+  if (countEl) countEl.textContent = searchTerm ? `${filtered.length} / ${DATA.length}` : '';
+}
+renderTable();
+
+document.getElementById('search-box').addEventListener('input', (e) => {
+  searchTerm = e.target.value;
+  renderTable();
+});
+</script>
+</body>
+</html>
